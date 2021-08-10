@@ -1,0 +1,4 @@
+/home/ljf/lijianfeng/vio/Geometry/build/CMakeFiles/rebuild_cache.dir
+/home/ljf/lijianfeng/vio/Geometry/build/CMakeFiles/edit_cache.dir
+/home/ljf/lijianfeng/vio/Geometry/build/CMakeFiles/TestLib.dir
+/home/ljf/lijianfeng/vio/Geometry/build/CMakeFiles/test.dir

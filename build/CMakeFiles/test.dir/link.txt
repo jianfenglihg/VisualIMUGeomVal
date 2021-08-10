@@ -1,0 +1,1 @@
+/usr/bin/c++  -std=c++11 CMakeFiles/test.dir/test.cpp.o -o test  -Wl,-rpath,/home/ljf/lijianfeng/vio/Geometry/build libTestLib.so 
