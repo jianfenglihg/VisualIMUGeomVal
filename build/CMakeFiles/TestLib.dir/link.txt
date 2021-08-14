@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -std=c++11 -shared -Wl,-soname,libTestLib.so -o libTestLib.so CMakeFiles/TestLib.dir/TestGeometry.cpp.o 
