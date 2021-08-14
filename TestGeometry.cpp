@@ -50,11 +50,12 @@ void test::generateVisualData(int camNums, int worldPointsNum){
 
 
 void test::testTriangulation(){
+    std::cout<<"**********************test triangulation*********************"<<std::endl;
     std::cout<<"the ground-truth of world points:"<<std::endl;
     for(int i=0;i<_world_points.size();i++){
         std::cout<<_world_points[i].x()<<" "<<_world_points[i].y()<<" "<<_world_points[i].z()<<std::endl;
     }
-    std::cout<<"triangulation start:"<<std::endl;
+    std::cout<<"\n"<<std::endl;
     std::vector<Eigen::Vector3d> triangualted_points;
 
     for(int i=0;i<_world_points.size();i++){
@@ -81,26 +82,26 @@ void test::testTriangulation(){
             triangualted_points.push_back(Eigen::Vector3d(0,0,0));
         }
     }
-    std::cout<<"triangulation end"<<std::endl;
     std::cout<<"the estimated of world points:"<<std::endl;
     for(int i=0;i<triangualted_points.size();i++){
         std::cout<<triangualted_points[i].x()<<" "<<triangualted_points[i].y()<<" "<<triangualted_points[i].z()<<std::endl;
     }
+    std::cout<<"******************triangulation end*************************\n\n\n"<<std::endl;
 }
 
 
 void test::testEightPointEpipolar(){}
 
 void test::testPnP(){
-    std::cout<<"pnp DLT solution: "<<std::endl;
-    for(int i=0; i<_cameras.size(); i++){
-         std::cout<<"the camera "<<i<<" 's rotation matrix is :"<<std::endl;
-         std::cout<<_cameras[i].Rwc<<std::endl;
-         std::cout<<"translation matrix is: "<<std::endl;
-         std::cout<<_cameras[i].twc<<std::endl;
+    std::cout<<"*************************test pnp DLT solution: **********************"<<std::endl;
+    for(unsigned long i=0; i<_cameras.size(); i++){
+         std::cout<<"the camera "<<i<<" 's rotation matrix is Rcw:"<<std::endl;
+         std::cout<<_cameras[i].Rwc.transpose()<<"\n"<<std::endl;
+         std::cout<<"translation matrix tcw is: "<<std::endl;
+         std::cout<<-_cameras[i].Rwc.transpose() * _cameras[i].twc<<"\n"<<std::endl;
          double observed_dim = _world_points.size() * 2;
          MatXX A(MatXX::Zero(observed_dim, 12));
-         for(int j=0;j<_world_points.size();j++){
+         for(unsigned long j=0;j<_world_points.size();j++){
              double u = _cameras[i].observed_points[j].x();
              double v = _cameras[i].observed_points[j].y();
              A.row(2*j) << _world_points[j].x(), _world_points[j].y(), _world_points[j].z(), 1,
@@ -119,12 +120,14 @@ void test::testPnP(){
 
          Eigen::Matrix3d M = P.block(0,0,3,3);
          Eigen::Vector3d MRC = P.col(3);
-         Eigen::JacobiSVD<Eigen::MatrixXd> svd_M(M, Eigen::ComputeThinU|Eigen::ComputeFullV);
+         Eigen::JacobiSVD<Eigen::MatrixXd> svd_M(M, Eigen::ComputeThinU | Eigen::ComputeFullV);
          Eigen::Matrix3d U = svd_M.matrixU();
          Eigen::Matrix3d V = svd_M.matrixV();
          Eigen::Matrix3d K_estimate = M * V * U.transpose();
          Eigen::Matrix3d R_estimate = U * V.transpose();
          std::cout<<"the estimated K is :"<<K_estimate<<std::endl;
          std::cout<<"the estimated R is :"<<R_estimate<<std::endl;
+         std::cout<<"------------------\n"<<std::endl;
+         /* std::cout<<"validate estimated R:"<<R_estimate.transpose()*R_estimate<<std::endl; */
     }
 }
