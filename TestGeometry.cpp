@@ -95,39 +95,65 @@ void test::testEightPointEpipolar(){}
 void test::testPnP(){
     std::cout<<"*************************test pnp DLT solution: **********************"<<std::endl;
     for(unsigned long i=0; i<_cameras.size(); i++){
-         std::cout<<"the camera "<<i<<" 's rotation matrix is Rcw:"<<std::endl;
-         std::cout<<_cameras[i].Rwc.transpose()<<"\n"<<std::endl;
-         std::cout<<"translation matrix tcw is: "<<std::endl;
+         std::cout<<"the camera "<<i<<" 's rotation matrix is Rcw:\n"<<std::endl;
+         std::cout<<_cameras[i].Rwc.transpose()<<std::endl;
+         std::cout<<"translation matrix tcw is:\n"<<std::endl;
          std::cout<<-_cameras[i].Rwc.transpose() * _cameras[i].twc<<"\n"<<std::endl;
+
          double observed_dim = _world_points.size() * 2;
          MatXX A(MatXX::Zero(observed_dim, 12));
          for(unsigned long j=0;j<_world_points.size();j++){
-             double u = _cameras[i].observed_points[j].x();
-             double v = _cameras[i].observed_points[j].y();
+             Eigen::Vector3d norm_uv =_cameras[i]._K.inverse() * _cameras[i].observed_points[j];
+             /* double uu = _cameras[i].observed_points[j].x(); */
+             double uu = norm_uv.x();
+             /* double vv = _cameras[i].observed_points[j].y(); */
+             double vv = norm_uv.y();
              A.row(2*j) << _world_points[j].x(), _world_points[j].y(), _world_points[j].z(), 1,
                             0,0,0,0,
-                           -u * _world_points[j].x(), -u * _world_points[j].y(), -u * _world_points[j].z(), -u;
+                           -uu * _world_points[j].x(), -uu * _world_points[j].y(), -uu * _world_points[j].z(), -uu;
              A.row(2*j+1) <<0,0,0,0,
                             _world_points[j].x(), _world_points[j].y(), _world_points[j].z(), 1,
-                            -v * _world_points[j].x(), -v * _world_points[j].y(), -v * _world_points[j].z(), -v;
+                            -vv * _world_points[j].x(), -vv * _world_points[j].y(), -vv * _world_points[j].z(), -vv;
          }
          Eigen::JacobiSVD<Eigen::MatrixXd> svd(A.transpose() * A, Eigen::ComputeThinU | Eigen::ComputeThinV);
-         Eigen::VectorXd u = svd.matrixU().col(11);
+         Eigen::VectorXd u_last_col = svd.matrixU().col(11);
          Eigen::MatrixXd P(3,4);
-         P << u(0), u(1), u(2), u(3),
-              u(4), u(5), u(6), u(7),
-              u(8), u(9), u(10), u(11);
+         P << u_last_col(0), u_last_col(1), u_last_col(2), u_last_col(3),
+              u_last_col(4), u_last_col(5), u_last_col(6), u_last_col(7),
+              u_last_col(8), u_last_col(9), u_last_col(10), u_last_col(11);
 
-         Eigen::Matrix3d M = P.block(0,0,3,3);
-         Eigen::Vector3d MRC = P.col(3);
-         Eigen::JacobiSVD<Eigen::MatrixXd> svd_M(M, Eigen::ComputeThinU | Eigen::ComputeFullV);
-         Eigen::Matrix3d U = svd_M.matrixU();
-         Eigen::Matrix3d V = svd_M.matrixV();
-         Eigen::Matrix3d K_estimate = M * V * U.transpose();
-         Eigen::Matrix3d R_estimate = U * V.transpose();
-         std::cout<<"the estimated K is :"<<K_estimate<<std::endl;
-         std::cout<<"the estimated R is :"<<R_estimate<<std::endl;
+         Eigen::Matrix3d R_estimate = P.block(0,0,3,3);
+         Eigen::Vector3d t_estimate = P.col(3);
+
+         Eigen::JacobiSVD<Eigen::MatrixXd> svd_R(R_estimate, Eigen::ComputeThinU | Eigen::ComputeThinV);
+         Eigen::Matrix3d U = svd_R.matrixU();
+         Eigen::Matrix3d V = svd_R.matrixV();
+         Eigen::Vector3d singular = svd_R.singularValues();
+         Eigen::Matrix3d R_best_estimated = U * V.transpose();
+
+         double lambda = 3.0/singular.sum();
+         lambda = lambda*(u_last_col(8)*_world_points[0].x()+u_last_col(9)*_world_points[0].y()+u_last_col(10)*_world_points[0].z()+u_last_col(11)) > 0 ? lambda : -lambda;
+         R_best_estimated = lambda/abs(lambda) * R_best_estimated;
+         Eigen::Vector3d t_best_estimated = lambda * t_estimate;
+
+/*          Eigen::Matrix3d M = P.block(0,0,3,3); */
+/*          Eigen::Vector3d MRC = P.col(3); */
+/*          Eigen::JacobiSVD<Eigen::MatrixXd> svd_M(M, Eigen::ComputeThinU | Eigen::ComputeFullV); */
+/*          Eigen::Matrix3d U = svd_M.matrixU(); */
+/*          Eigen::Matrix3d V = svd_M.matrixV(); */
+/*          Eigen::Matrix3d K_estimate = M * V * U.transpose(); */
+/*          Eigen::Matrix3d R_estimate = U * V.transpose(); */
+/*          Eigen::Vector3d t_estimate = -K_estimate.inverse() * MRC; */
+/*          std::cout<<"the estimated K is :\n"<<K_estimate<<std::endl; */
+
+         std::cout<<"the estimated R is :\n"<<R_best_estimated<<std::endl;
+         std::cout<<"the estimated t is :\n"<<t_best_estimated<<std::endl;
          std::cout<<"------------------\n"<<std::endl;
          /* std::cout<<"validate estimated R:"<<R_estimate.transpose()*R_estimate<<std::endl; */
     }
+}
+
+
+void test::generateIMUData(){
+
 }
