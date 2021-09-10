@@ -6,5 +6,6 @@ int main(){
     test_obj.generateVisualData(8,100);
     test_obj.testTriangulation();
     test_obj.testPnP();
+    test_obj.testEightPointEpipolar();
     return 0;
 }

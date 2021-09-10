@@ -50,7 +50,10 @@ void test::generateVisualData(int camNums, int worldPointsNum){
 
 
 void test::testTriangulation(){
-    std::cout<<"**********************test triangulation*********************"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"============================  Triangulation Start  ==========================="<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+
     std::cout<<"the ground-truth of world points:"<<std::endl;
     for(int i=0;i<_world_points.size();i++){
         std::cout<<_world_points[i].x()<<" "<<_world_points[i].y()<<" "<<_world_points[i].z()<<std::endl;
@@ -86,12 +89,16 @@ void test::testTriangulation(){
     for(int i=0;i<triangualted_points.size();i++){
         std::cout<<triangualted_points[i].x()<<" "<<triangualted_points[i].y()<<" "<<triangualted_points[i].z()<<std::endl;
     }
-    std::cout<<"******************triangulation end*************************\n\n\n"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"============================  Triangulation End  ============================="<<std::endl;
+    std::cout<<"==============================================================================\n\n\n\n\n\n"<<std::endl;
 }
 
 
 void test::testEightPointEpipolar(){
-    std::cout<<"*************************test Eight Point Method: **********************"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"==========================  Eight Point Method Start  ========================"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
     for(unsigned long i=0;i<_cameras.size()-1;i++){
         double observed_dim = _world_points.size();
         MatXX A(MatXX::Zero(observed_dim,9));
@@ -104,16 +111,34 @@ void test::testEightPointEpipolar(){
             double y2 = norm_point2.y();
             A.row(j) << x1*x2, x1*y2, x1, y1*x2, y1*y2, y1, x2, y2, 1;
         }
-        Eigen::JacobiSVD<Eigen::MatrixXd>
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        Eigen::VectorXd V_last_col = svd.matrixV().col(8);
+        Eigen::Matrix3d E;
+        E << V_last_col(0),V_last_col(1),V_last_col(2),
+            V_last_col(3),V_last_col(4),V_last_col(5),
+            V_last_col(6),V_last_col(7),V_last_col(8);
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd_E(E, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        Eigen::Matrix3d U = svd_E.matrixU();
+        Eigen::Matrix3d V = svd_E.matrixV();
+        Eigen::Vector3d S = svd_E.singularValues();
+        S.z() = 0;
+        Eigen::Matrix3d E_final = U * S.asDiagonal() * V.transpose();
     }
+
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"============================  Eight Point Method End  ========================"<<std::endl;
+    std::cout<<"==============================================================================\n\n\n\n\n"<<std::endl;
+
 }
 
 void test::testPnP(){
-    std::cout<<"*************************test pnp DLT solution: **********************"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"==============================  DLT PnP Start  ==============================="<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
     for(unsigned long i=0; i<_cameras.size(); i++){
-         std::cout<<"the camera "<<i<<" 's rotation matrix is Rcw:\n"<<std::endl;
+         std::cout<<"the camera "<<i<<" 's rotation matrix is Rcw:"<<std::endl;
          std::cout<<_cameras[i].Rwc.transpose()<<std::endl;
-         std::cout<<"translation matrix tcw is:\n"<<std::endl;
+         std::cout<<"translation matrix tcw is:"<<std::endl;
          std::cout<<-_cameras[i].Rwc.transpose() * _cameras[i].twc<<"\n"<<std::endl;
 
          double observed_dim = _world_points.size() * 2;
@@ -167,6 +192,10 @@ void test::testPnP(){
          std::cout<<"------------------\n"<<std::endl;
          /* std::cout<<"validate estimated R:"<<R_estimate.transpose()*R_estimate<<std::endl; */
     }
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"================================  DLT PnP End  ==============================="<<std::endl;
+    std::cout<<"==============================================================================\n\n\n\n\n"<<std::endl;
+
 }
 
 
