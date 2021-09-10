@@ -90,7 +90,23 @@ void test::testTriangulation(){
 }
 
 
-void test::testEightPointEpipolar(){}
+void test::testEightPointEpipolar(){
+    std::cout<<"*************************test Eight Point Method: **********************"<<std::endl;
+    for(unsigned long i=0;i<_cameras.size()-1;i++){
+        double observed_dim = _world_points.size();
+        MatXX A(MatXX::Zero(observed_dim,9));
+        for(unsigned long j=0;j<_world_points.size();j++){
+            Eigen::Vector3d norm_point1 = _cameras[i]._K.inverse() * _cameras[i].observed_points[j];
+            Eigen::Vector3d norm_point2 = _cameras[i+1]._K.inverse() * _cameras[i+1].observed_points[j];
+            double x1 = norm_point1.x();
+            double y1 = norm_point1.y();
+            double x2 = norm_point2.x();
+            double y2 = norm_point2.y();
+            A.row(j) << x1*x2, x1*y2, x1, y1*x2, y1*y2, y1, x2, y2, 1;
+        }
+        Eigen::JacobiSVD<Eigen::MatrixXd>
+    }
+}
 
 void test::testPnP(){
     std::cout<<"*************************test pnp DLT solution: **********************"<<std::endl;
