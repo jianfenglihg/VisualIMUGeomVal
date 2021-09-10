@@ -1,6 +1,6 @@
 # VisualGeom
 
-This repository contains basic multi-view geometry algorithms.
+This repository contains basic multi-view geometry and IMU algorithms.
 
 * Triangulation
 
