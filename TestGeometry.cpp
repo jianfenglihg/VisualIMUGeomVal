@@ -48,6 +48,31 @@ void test::generateVisualData(int camNums, int worldPointsNum){
     std::cout<<"generate visual data finished!"<<std::endl;
 }
 
+std::vector<Eigen::Vector3d> test::Triangulation(const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc, const std::vector<Eigen::Vector3d> &left_pts, const std::vector<Eigen::Vector3d> &right_pts){
+    std::vector<Eigen::Vector3d> result;
+    for(int i=0;i<left_pts.size();i++){
+        unsigned long observed_dim = 4;
+        MatXX A(MatXX::Zero(observed_dim,4));
+        Eigen::Matrix3d Rcw = R_wc.transpose();
+        Eigen::Vector3d tcw = -Rcw * t_wc;
+        MatXX P(MatXX::Zero(3,4));
+        P.block(0,0,3,3) = Rcw;
+        P.block(0,3,3,1) = tcw;
+        A.block(0,0,1,4) = left_pts[i].x() * P.block(2,0,1,4) - P.block(0,0,1,4);
+        A.block(1,0,1,4) = left_pts[i].y() * P.block(2,0,1,4) - P.block(1,0,1,4);
+        A.block(2,0,1,4) = right_pts[i].x() * P.block(2,0,1,4) - P.block(0,0,1,4);
+        A.block(3,0,1,4) = right_pts[i].y() * P.block(2,0,1,4) - P.block(1,0,1,4);
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(A.transpose()*A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        Eigen::Vector4d u4 = svd.matrixU().col(3);
+        if(u4(3)!=0){
+            result.push_back(Eigen::Vector3d(u4(0)/u4(3), u4(1)/u4(3), u4(2)/u4(3)));
+        }
+        else{
+            result.push_back(Eigen::Vector3d(0,0,0));
+        }
+    }
+    return result;
+}
 
 void test::testTriangulation(){
     std::cout<<"=============================================================================="<<std::endl;
@@ -99,7 +124,17 @@ void test::testEightPointEpipolar(){
     std::cout<<"=============================================================================="<<std::endl;
     std::cout<<"==========================  Eight Point Method Start  ========================"<<std::endl;
     std::cout<<"=============================================================================="<<std::endl;
+    Eigen::Matrix3d W;
+    W << 0, -1, 0,
+         1, 0, 0,
+         0, 0, 1;
+
     for(unsigned long i=0;i<_cameras.size()-1;i++){
+        std::cout<<"the camera "<<i<<"camera "<<i+1<<" s rotation matrix is Rcw:"<<std::endl;
+        std::cout<<_cameras[i].Rwc.transpose() * _cameras[i+1].Rwc<<std::endl;
+        std::cout<<"translation matrix tcw is:"<<std::endl;
+        std::cout<<_cameras[i].Rwc.transpose() * (_cameras[i+1].twc-_cameras[i].twc)<<"\n"<<std::endl;
+
         double observed_dim = _world_points.size();
         MatXX A(MatXX::Zero(observed_dim,9));
         for(unsigned long j=0;j<_world_points.size();j++){
@@ -123,6 +158,16 @@ void test::testEightPointEpipolar(){
         Eigen::Vector3d S = svd_E.singularValues();
         S.z() = 0;
         Eigen::Matrix3d E_final = U * S.asDiagonal() * V.transpose();
+        Eigen::Matrix3d R_candinate1 = U * W * V.transpose();
+        Eigen::Matrix3d R_candinate2 = U * W.transpose() * V.transpose();
+        Eigen::Vector3d t_candinate1 = U.col(2);
+        Eigen::Vector3d t_candinate2 = -U.col(2);
+
+        std::cout<<"R1:\n"<<R_candinate1<<std::endl;
+        std::cout<<"R2:\n"<<R_candinate2<<std::endl;
+        std::cout<<"t1:\n"<<t_candinate1<<std::endl;
+        std::cout<<"t1:\n"<<t_candinate2<<std::endl;
+        std::cout<<"\n\n\n\n";
     }
 
     std::cout<<"=============================================================================="<<std::endl;

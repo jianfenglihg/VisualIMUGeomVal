@@ -34,4 +34,6 @@ class test{
         void testTriangulation();
         void testPnP();
 
+        std::vector<Eigen::Vector3d> Triangulation(const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc, const std::vector<Eigen::Vector3d> &left_pts, const std::vector<Eigen::Vector3d> &right_pts);
+
 };
