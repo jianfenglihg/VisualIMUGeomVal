@@ -49,19 +49,22 @@ void test::generateVisualData(int camNums, int worldPointsNum){
 }
 
 std::vector<Eigen::Vector3d> test::Triangulation(const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc, const std::vector<Eigen::Vector3d> &left_pts, const std::vector<Eigen::Vector3d> &right_pts){
+
     std::vector<Eigen::Vector3d> result;
     for(int i=0;i<left_pts.size();i++){
         unsigned long observed_dim = 4;
         MatXX A(MatXX::Zero(observed_dim,4));
         Eigen::Matrix3d Rcw = R_wc.transpose();
         Eigen::Vector3d tcw = -Rcw * t_wc;
-        MatXX P(MatXX::Zero(3,4));
-        P.block(0,0,3,3) = Rcw;
-        P.block(0,3,3,1) = tcw;
-        A.block(0,0,1,4) = left_pts[i].x() * P.block(2,0,1,4) - P.block(0,0,1,4);
-        A.block(1,0,1,4) = left_pts[i].y() * P.block(2,0,1,4) - P.block(1,0,1,4);
-        A.block(2,0,1,4) = right_pts[i].x() * P.block(2,0,1,4) - P.block(0,0,1,4);
-        A.block(3,0,1,4) = right_pts[i].y() * P.block(2,0,1,4) - P.block(1,0,1,4);
+        MatXX P1(MatXX::Zero(3,4));
+        MatXX P2(MatXX::Zero(3,4));
+        P1.block(0,0,3,3) = Eigen::Matrix3d::Identity();
+        P2.block(0,0,3,3) = Rcw;
+        P2.block(0,3,3,1) = tcw;
+        A.block(0,0,1,4) = left_pts[i].x() * P1.block(2,0,1,4) - P1.block(0,0,1,4);
+        A.block(1,0,1,4) = left_pts[i].y() * P1.block(2,0,1,4) - P1.block(1,0,1,4);
+        A.block(2,0,1,4) = right_pts[i].x() * P2.block(2,0,1,4) - P2.block(0,0,1,4);
+        A.block(3,0,1,4) = right_pts[i].y() * P2.block(2,0,1,4) - P2.block(1,0,1,4);
         Eigen::JacobiSVD<Eigen::MatrixXd> svd(A.transpose()*A, Eigen::ComputeThinU | Eigen::ComputeThinV);
         Eigen::Vector4d u4 = svd.matrixU().col(3);
         if(u4(3)!=0){
@@ -120,6 +123,18 @@ void test::testTriangulation(){
 }
 
 
+double test::count(const std::vector<Eigen::Vector3d> &points, const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc){
+    double counts = 0;
+    Eigen::Matrix3d Rcw = R_wc.transpose();
+    Eigen::Vector3d tcw = -Rcw * t_wc;
+
+    for(int i=0;i<points.size();i++){
+        Eigen::Vector3d point2 = Rcw*points[i]+tcw;
+        if(points[i].z() > 0 && point2.z() > 0) counts++;
+    }
+    return counts;
+}
+
 void test::testEightPointEpipolar(){
     std::cout<<"=============================================================================="<<std::endl;
     std::cout<<"==========================  Eight Point Method Start  ========================"<<std::endl;
@@ -137,9 +152,13 @@ void test::testEightPointEpipolar(){
 
         double observed_dim = _world_points.size();
         MatXX A(MatXX::Zero(observed_dim,9));
+        std::vector<Eigen::Vector3d> left_pts;
+        std::vector<Eigen::Vector3d> right_pts;
         for(unsigned long j=0;j<_world_points.size();j++){
             Eigen::Vector3d norm_point1 = _cameras[i]._K.inverse() * _cameras[i].observed_points[j];
             Eigen::Vector3d norm_point2 = _cameras[i+1]._K.inverse() * _cameras[i+1].observed_points[j];
+            left_pts.push_back(norm_point1);
+            right_pts.push_back(norm_point2);
             double x1 = norm_point1.x();
             double y1 = norm_point1.y();
             double x2 = norm_point2.x();
@@ -159,15 +178,36 @@ void test::testEightPointEpipolar(){
         S.z() = 0;
         Eigen::Matrix3d E_final = U * S.asDiagonal() * V.transpose();
         Eigen::Matrix3d R_candinate1 = U * W * V.transpose();
+        if(R_candinate1.determinant() < 0) R_candinate1 = -R_candinate1;
         Eigen::Matrix3d R_candinate2 = U * W.transpose() * V.transpose();
+        if(R_candinate2.determinant() < 0) R_candinate2 = -R_candinate2;
         Eigen::Vector3d t_candinate1 = U.col(2);
         Eigen::Vector3d t_candinate2 = -U.col(2);
-
-        std::cout<<"R1:\n"<<R_candinate1<<std::endl;
-        std::cout<<"R2:\n"<<R_candinate2<<std::endl;
-        std::cout<<"t1:\n"<<t_candinate1<<std::endl;
-        std::cout<<"t1:\n"<<t_candinate2<<std::endl;
-        std::cout<<"\n\n\n\n";
+        double count1 = 0;
+        double count2 = 0;
+        double count3 = 0;
+        double count4 = 0;
+        count1 = test::count(test::Triangulation(R_candinate1, t_candinate1, left_pts, right_pts), R_candinate1, t_candinate1);
+        count2 = test::count(test::Triangulation(R_candinate1, t_candinate2, left_pts, right_pts), R_candinate1, t_candinate2);
+        count3 = test::count(test::Triangulation(R_candinate2, t_candinate1, left_pts, right_pts), R_candinate2, t_candinate1);
+        count4 = test::count(test::Triangulation(R_candinate2, t_candinate2, left_pts, right_pts), R_candinate2, t_candinate2);
+        std::cout<<count1<<"  "<<count2<<"  "<<count3<<"  "<<count4<<std::endl;
+        if(count1 >= count2 && count1 >= count3 && count1 >= count4){
+            std::cout<<"R:\n"<<R_candinate1<<std::endl;
+            std::cout<<"t:\n"<<t_candinate1<<std::endl;
+        }
+        else if(count2 >= count1 && count2 >= count3 && count2 >= count4){
+            std::cout<<"R:\n"<<R_candinate1<<std::endl;
+            std::cout<<"t:\n"<<t_candinate2<<std::endl;
+        }
+        else if(count3 >= count1 && count3 >= count2 && count3 >= count4){
+            std::cout<<"R:\n"<<R_candinate2<<std::endl;
+            std::cout<<"t:\n"<<t_candinate1<<std::endl;
+        }
+        else{
+            std::cout<<"R:\n"<<R_candinate2<<std::endl;
+            std::cout<<"t:\n"<<t_candinate2<<std::endl;
+        }
     }
 
     std::cout<<"=============================================================================="<<std::endl;
@@ -221,16 +261,6 @@ void test::testPnP(){
          lambda = lambda*(u_last_col(8)*_world_points[0].x()+u_last_col(9)*_world_points[0].y()+u_last_col(10)*_world_points[0].z()+u_last_col(11)) > 0 ? lambda : -lambda;
          R_best_estimated = lambda/abs(lambda) * R_best_estimated;
          Eigen::Vector3d t_best_estimated = lambda * t_estimate;
-
-/*          Eigen::Matrix3d M = P.block(0,0,3,3); */
-/*          Eigen::Vector3d MRC = P.col(3); */
-/*          Eigen::JacobiSVD<Eigen::MatrixXd> svd_M(M, Eigen::ComputeThinU | Eigen::ComputeFullV); */
-/*          Eigen::Matrix3d U = svd_M.matrixU(); */
-/*          Eigen::Matrix3d V = svd_M.matrixV(); */
-/*          Eigen::Matrix3d K_estimate = M * V * U.transpose(); */
-/*          Eigen::Matrix3d R_estimate = U * V.transpose(); */
-/*          Eigen::Vector3d t_estimate = -K_estimate.inverse() * MRC; */
-/*          std::cout<<"the estimated K is :\n"<<K_estimate<<std::endl; */
 
          std::cout<<"the estimated R is :\n"<<R_best_estimated<<std::endl;
          std::cout<<"the estimated t is :\n"<<t_best_estimated<<std::endl;

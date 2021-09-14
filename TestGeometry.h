@@ -22,7 +22,8 @@ class test{
     private:
         std::vector<Camera> _cameras;
         std::vector<Eigen::Vector3d> _world_points;
-
+        std::vector<Eigen::Vector3d> Triangulation(const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc, const std::vector<Eigen::Vector3d> &left_pts, const std::vector<Eigen::Vector3d> &right_pts);
+        double count(const std::vector<Eigen::Vector3d> &points, const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc);
 
      public:
         //test();
@@ -33,7 +34,5 @@ class test{
         void testEightPointEpipolar();
         void testTriangulation();
         void testPnP();
-
-        std::vector<Eigen::Vector3d> Triangulation(const Eigen::Matrix3d &R_wc, const Eigen::Vector3d &t_wc, const std::vector<Eigen::Vector3d> &left_pts, const std::vector<Eigen::Vector3d> &right_pts);
 
 };
