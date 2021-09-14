@@ -6,4 +6,5 @@ This repository contains basic multi-view geometry and IMU algorithms.
 
 * PnP
     + DLT
+* eight-point
 * To be continued
