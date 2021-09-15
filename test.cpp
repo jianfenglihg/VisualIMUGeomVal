@@ -1,11 +1,11 @@
-#include "TestGeometry.h"
+#include "VisualGeometry.h"
 
 
 int main(){
-    test test_obj;
-    test_obj.generateVisualData(8,100);
-    test_obj.testTriangulation();
-    test_obj.testPnP();
-    test_obj.testEightPointEpipolar();
+    VisualTest vision_obj;
+    vision_obj.generateVisualData(8,100);
+    vision_obj.testTriangulation();
+    vision_obj.testPnP();
+    vision_obj.testEightPointEpipolar();
     return 0;
 }

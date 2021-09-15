@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Test)
+project(TestVisionIMUGeometry)
 
 SET(CMAKE_BUILD_TYPE "Debug")
 
@@ -17,7 +17,8 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
 )
 add_library(TestLib SHARED
-    TestGeometry.cpp
+    VisualGeometry.cpp
+    IMUGeometry.cpp
     )
 add_executable(test test.cpp)
 
