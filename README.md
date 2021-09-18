@@ -13,4 +13,4 @@ Now these methods have been completed:
 
 
 #### IMU
-* To be continued
+* Intergrate
