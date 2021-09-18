@@ -29,5 +29,6 @@ class VisualTest{
         void generateVisualData(int camNums, int worldPointsNum);
         void testEightPointEpipolar();
         void testTriangulation();
-        void testPnP();
+        void testPnPDLT();
+        void testPnPBA();
 };

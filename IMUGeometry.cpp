@@ -1,5 +1,6 @@
 #include"IMUGeometry.h"
 #include<random>
+#include<fstream>
 
 IMUTest::IMUTest(){
     gyro_bias_ = Eigen::Vector3d::Zero();
@@ -104,7 +105,58 @@ void IMUTest::addIMUnoise(MotionData& data)
 }
 
 void IMUTest::testIMUInfer(){
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"============================== IMU Infer start  =============================="<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+
+    std::ofstream filestream_infer("./imu_infer_res.xyz");
+    std::ofstream filestream_gt("./imu_gt_res.xyz");
+    MotionData init_data = generateIMUData(t_start);
+    Eigen::Vector3d P = init_data.twb;
+    Eigen::Vector3d V = init_data.imu_velocity;
+    Eigen::Quaterniond Q(init_data.Rwb);
+    Eigen::Vector3d g(0,0,-9.8);
+    filestream_gt << P.x() << " " << P.y() << " " << P.z() << std::endl;
+    filestream_infer << P.x() << " " << P.y() << " " << P.z() << std::endl;
+    for(double t=t_start+imu_timestep; t<t_end;){
+        MotionData prev_data = generateIMUData(t-imu_timestep);
+        MotionData curr_data = generateIMUData(t);
+        filestream_gt << curr_data.twb.x() << " " << curr_data.twb.y() << " " << curr_data.twb.z() << std::endl;
+        addIMUnoise(curr_data);
+        addIMUnoise(prev_data);
+        Eigen::Vector3d omiga = (prev_data.imu_gyro + curr_data.imu_gyro)/2;
+        Eigen::Quaterniond Q_prev = Q;
+        Eigen::Quaterniond dq;
+        dq.w() = 1;
+        dq.x() = 0.5*omiga.x()*imu_timestep;
+        dq.y() = 0.5*omiga.y()*imu_timestep;
+        dq.z() = 0.5*omiga.z()*imu_timestep;
+        Q = Q * dq;
+        /* Eigen::Vector3d acc = 0.5*(Q_prev*(prev_data.imu_acc+prev_data.imu_acc_bias)+Q*(curr_data.imu_acc+curr_data.imu_acc_bias))+g; */
+        Eigen::Vector3d acc = 0.5*(Q_prev*prev_data.imu_acc+Q*curr_data.imu_acc)+g;
+        V = V + acc*imu_timestep;
+        P = P + V*imu_timestep + 0.5*acc*imu_timestep*imu_timestep;
+        filestream_infer << P.x() << " " << P.y() << " " << P.z() << std::endl;
+        t += imu_timestep;
+    }
+    filestream_gt.close();
+    filestream_infer.close();
+
+    std::cout<<"the result saved in imu_infer_res and imu_gt_res!"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"============================== IMU Infer end ================================="<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
 
 }
 
-void IMUTest::testIMUPreIntegration(){}
+void IMUTest::testIMUPreIntegration(){
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"========================= IMU PreIntergration start =========================="<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+
+
+
+    std::cout<<"=============================================================================="<<std::endl;
+    std::cout<<"========================= IMU PreIntergration end ============================"<<std::endl;
+    std::cout<<"=============================================================================="<<std::endl;
+}
